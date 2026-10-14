@@ -2,7 +2,7 @@
    QueueAI – Main Application Logic (Dual-Mode: Client + Admin)
    ============================================================ */
 
-const API = (window.location.protocol === 'file:' || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.port)) ? 'http://127.0.0.1:8000' : '';
+const API = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
 let _centres   = [];
 let _chartRefs = {};
 let _pollTimer = null;
