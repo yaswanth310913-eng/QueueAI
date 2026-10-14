@@ -12,11 +12,18 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import sys
+from pathlib import Path
+
+# Ensure backend directory is in sys.path so local modules resolve from any working directory
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 from pydantic import BaseModel, Field
 
 from database import get_db, init_db, _seed_demo_data

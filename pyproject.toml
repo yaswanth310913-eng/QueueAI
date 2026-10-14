@@ -1,2 +1,22 @@
+[project]
+name = "queueai"
+version = "1.0.0"
+description = "QueueAI - AI-Powered Queue Time Prediction System"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "scikit-learn>=1.3.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.1.0",
+    "jinja2>=3.1.0"
+]
+
 [tool.vercel]
-entrypoint="backend/main.py"
+entrypoint = "main:app"
+
+[tool.fastapi]
+entrypoint = "main:app"

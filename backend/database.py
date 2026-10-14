@@ -2,12 +2,24 @@
 QueueAI - Database Setup and Connection
 Uses SQLite for zero-config deployment (swap to PostgreSQL for production).
 """
+import os
+import shutil
 import sqlite3
 import json
 from pathlib import Path
 from datetime import datetime, timezone
 
-DB_PATH = Path(__file__).parent / "queueai.db"
+if os.environ.get("VERCEL"):
+    TMP_DB = Path("/tmp/queueai.db")
+    ORIG_DB = Path(__file__).parent / "queueai.db"
+    if not TMP_DB.exists() and ORIG_DB.exists():
+        try:
+            shutil.copy2(ORIG_DB, TMP_DB)
+        except Exception:
+            pass
+    DB_PATH = TMP_DB
+else:
+    DB_PATH = Path(__file__).parent / "queueai.db"
 
 
 def get_db():
