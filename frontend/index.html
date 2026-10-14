@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QueueAI – AI-Powered Queue Time Prediction</title>
+  <meta name="description" content="QueueAI uses artificial intelligence and real-time data to estimate waiting times at service centres — hospitals, banks, government offices, and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<div id="app" class="app-layout">
+
+  <!-- ════════════════════════════════════════════════
+       CLIENT SIDEBAR (shown in client mode)
+  ════════════════════════════════════════════════ -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="#0F52BA"/>
+          <path d="M7 14h4l2-5 3 10 2-8 2 3h1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">Queue<strong>AI</strong></span>
+    </div>
+
+    <!-- Client nav links -->
+    <div class="sidebar-links" id="clientNav">
+      <a href="#" class="nav-link active" data-page="landing" onclick="showPage('landing')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </a>
+      <a href="#" class="nav-link" data-page="dashboard" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Live Dashboard
+      </a>
+      <a href="#" class="nav-link" data-page="monitor" onclick="showPage('monitor')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Live Monitor
+      </a>
+      <a href="#" class="nav-link" data-page="compare" onclick="showPage('compare')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Compare
+      </a>
+      <a href="#" class="nav-link" data-page="best-time" onclick="showPage('best-time')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Best Time
+      </a>
+      <a href="#" class="nav-link" data-page="analytics" onclick="showPage('analytics')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><polyline points="22 20 2 20"/></svg>
+        Analytics
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="demo-badge">🔴 DEMO MODE</div>
+      <p class="sidebar-note">Data shown is simulated<br>for demonstration purposes</p>
+      <!-- Unobtrusive admin entry point -->
+      <button class="admin-entry-btn" onclick="switchToAdmin()" id="adminEntryBtn" title="Administrator Login">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Staff Portal
+      </button>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════
+       ADMIN SIDEBAR (shown in admin mode)
+  ════════════════════════════════════════════════ -->
+  <nav class="sidebar admin-sidebar hidden" id="adminSidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="#7c3aed"/>
+          <path d="M14 6l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" fill="white" opacity=".9"/>
+        </svg>
+      </div>
+      <span class="logo-text admin-logo-text">Queue<strong>AI</strong> <span class="admin-label-pill">Admin</span></span>
+    </div>
+
+    <div class="sidebar-links">
+      <a href="#" class="nav-link active" data-adminpage="admin-overview" onclick="showAdminPage('admin-overview')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-upload" onclick="showAdminPage('admin-upload')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+        Upload Data
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-centres" onclick="showAdminPage('admin-centres')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        Manage Centres
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-queue-update" onclick="showAdminPage('admin-queue-update')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Update Queue
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-thresholds" onclick="showAdminPage('admin-thresholds')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Thresholds
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-ml" onclick="showAdminPage('admin-ml')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        ML Models
+      </a>
+      <a href="#" class="nav-link" data-adminpage="admin-export" onclick="showAdminPage('admin-export')">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export / Reset
+      </a>
+
+      <!-- Switch back to client view -->
+      <div style="margin-top:auto;padding-top:1rem;">
+        <a href="#" class="nav-link" onclick="switchToClient()">
+          <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Client View
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div id="adminSidebarWelcome" class="admin-welcome-pill"></div>
+      <button class="admin-entry-btn logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile top nav -->
+  <header class="mobile-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><svg width="24" height="24" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#0F52BA"/><path d="M7 14h4l2-5 3 10 2-8 2 3h1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="logo-text">Queue<strong>AI</strong></span>
+    </div>
+    <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">☰</button>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a onclick="showPage('landing');toggleMobileMenu()">🏠 Home</a>
+    <a onclick="showPage('dashboard');toggleMobileMenu()">📊 Dashboard</a>
+    <a onclick="showPage('monitor');toggleMobileMenu()">📡 Live Monitor</a>
+    <a onclick="showPage('compare');toggleMobileMenu()">📈 Compare</a>
+    <a onclick="showPage('best-time');toggleMobileMenu()">🕐 Best Time</a>
+    <a onclick="showPage('analytics');toggleMobileMenu()">📉 Analytics</a>
+    <a onclick="switchToAdmin();toggleMobileMenu()" style="color:#7c3aed;">🔐 Staff Portal</a>
+  </div>
+
+  <!-- ═══════════════════════════ MAIN CONTENT ═══════════════════════════ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         ██████████████  CLIENT PAGES  ████████████████████████████████
+    ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ──────────────────── LANDING PAGE ──────────────────── -->
+    <section id="page-landing" class="page active">
+      <div class="landing-hero">
+        <div class="hero-content">
+          <div class="hero-badge">🤖 AI-Powered · Real-Time · Free</div>
+          <h1 class="hero-title">Know Your Waiting Time<br><span class="gradient-text">Before You Arrive</span></h1>
+          <p class="hero-subtitle">QueueAI uses machine learning, historical patterns, and live queue data to predict your wait — helping you choose the best time to visit any service centre.</p>
+
+          <div class="hero-search">
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="heroSearch" placeholder="Search hospitals, banks, offices..." />
+            </div>
+            <div class="hero-btns">
+              <button class="btn btn-primary" onclick="doHeroSearch()">Check Waiting Time</button>
+              <button class="btn btn-outline" onclick="showPage('dashboard')">Explore Dashboard</button>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-card floating">
+            <div class="hero-stat-row">
+              <div class="hero-stat green"><div class="hs-val">6 min</div><div class="hs-label">Central Bank</div></div>
+              <div class="hero-stat orange"><div class="hs-val">40 min</div><div class="hs-label">City Hospital</div></div>
+              <div class="hero-stat red"><div class="hs-val">52 min</div><div class="hs-label">College Admin</div></div>
+            </div>
+            <div class="mini-chart" id="heroMiniChart"></div>
+            <div class="hero-ai-tag">⚡ AI Prediction — Updated 30s ago</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="section how-it-works">
+        <div class="section-header">
+          <h2>How QueueAI Works</h2>
+          <p>Transparent AI predictions you can understand</p>
+        </div>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-icon">📡</div>
+            <h3>Real-Time Data</h3>
+            <p>Queue lengths, active counters, and service rates are monitored continuously — updated every 30 seconds.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-icon">🧮</div>
+            <h3>Mathematical Baseline</h3>
+            <p>Base formula: <strong>Wait ≈ (People waiting × Service time) ÷ Counters</strong>. Adjusted for utilisation and arrival rates.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-icon">🤖</div>
+            <h3>ML Enhancement</h3>
+            <p>A Gradient Boosting model trained on historical data improves predictions using time-of-day, day-of-week, and queue patterns.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">04</div>
+            <div class="step-icon">📊</div>
+            <h3>Smart Recommendations</h3>
+            <p>Best-time analysis identifies quiet windows so you can plan visits to avoid long waits.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service categories -->
+      <div class="section categories-section">
+        <div class="section-header">
+          <h2>Supported Service Categories</h2>
+        </div>
+        <div class="categories-grid">
+          <div class="category-card" onclick="filterAndGo('Hospital')"><div class="cat-emoji">🏥</div><div>Hospitals &amp; Clinics</div></div>
+          <div class="category-card" onclick="filterAndGo('Bank')"><div class="cat-emoji">🏦</div><div>Banks</div></div>
+          <div class="category-card" onclick="filterAndGo('Education')"><div class="cat-emoji">🎓</div><div>College Offices</div></div>
+          <div class="category-card" onclick="filterAndGo('Government')"><div class="cat-emoji">🏛️</div><div>Government Centres</div></div>
+          <div class="category-card" onclick="filterAndGo('Transport')"><div class="cat-emoji">🚉</div><div>Transport Counters</div></div>
+          <div class="category-card" onclick="showPage('dashboard')"><div class="cat-emoji">🏢</div><div>All Centres</div></div>
+        </div>
+      </div>
+
+      <!-- Benefits -->
+      <div class="section benefits-section">
+        <div class="section-header">
+          <h2>Benefits</h2>
+        </div>
+        <div class="benefits-grid">
+          <div class="benefit-col">
+            <h3>👤 For Visitors</h3>
+            <ul>
+              <li>✅ Check wait times before leaving home</li>
+              <li>✅ Find the shortest nearby queue</li>
+              <li>✅ Get best-time recommendations</li>
+              <li>✅ Avoid peak-hour frustration</li>
+              <li>✅ Compare multiple service centres</li>
+            </ul>
+          </div>
+          <div class="benefit-col">
+            <h3>🏢 For Administrators</h3>
+            <ul>
+              <li>✅ Monitor all queues in one dashboard</li>
+              <li>✅ Detect congestion early with alerts</li>
+              <li>✅ Analyse historical patterns</li>
+              <li>✅ Upload and manage queue data</li>
+              <li>✅ Export data as CSV for reporting</li>
+            </ul>
+          </div>
+        </div>
+        <div class="disclaimer-box">
+          ⚠️ <strong>Disclaimer:</strong> QueueAI predictions are estimates for planning purposes only. Do not delay urgent medical care based on queue predictions. Data shown in this demo is simulated and fictional.
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── DASHBOARD ──────────────────── -->
+    <section id="page-dashboard" class="page">
+      <div class="page-header">
+        <h1>Live Dashboard</h1>
+        <div class="header-actions">
+          <button class="btn btn-sm btn-outline" onclick="loadDashboard()">↻ Refresh</button>
+          <div class="demo-pill">🔴 DEMO DATA</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">Active Centres</div></div>
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">People Waiting</div></div>
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">Avg Wait Time</div></div>
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">Busy Centres</div></div>
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">Shortest Wait</div></div>
+        <div class="kpi-card shimmer"><div class="kpi-val">—</div><div class="kpi-label">Congestion Level</div></div>
+      </div>
+
+      <div id="alertsBar" class="alerts-bar hidden"></div>
+
+      <div class="filters-bar">
+        <input type="text" id="dashSearch" placeholder="🔍 Search centres..." oninput="applyFilters()" />
+        <select id="typeFilter" onchange="applyFilters()">
+          <option value="">All Types</option>
+          <option value="Hospital">Hospital</option>
+          <option value="Bank">Bank</option>
+          <option value="Education">Education</option>
+          <option value="Government">Government</option>
+          <option value="Transport">Transport</option>
+        </select>
+        <select id="waitFilter" onchange="applyFilters()">
+          <option value="">Any Wait</option>
+          <option value="10">Under 10 min</option>
+          <option value="20">Under 20 min</option>
+          <option value="30">Under 30 min</option>
+        </select>
+        <button class="btn btn-sm btn-outline" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <div class="centres-grid" id="centresGrid">
+        <div class="loading-placeholder">Loading service centres...</div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── LIVE MONITOR ──────────────────── -->
+    <section id="page-monitor" class="page">
+      <div class="page-header">
+        <h1>Live Queue Monitor</h1>
+        <div class="demo-pill">🔴 DEMO DATA</div>
+      </div>
+
+      <div class="monitor-selector">
+        <label>Select Service Centre:</label>
+        <select id="monitorCentreSelect" onchange="loadMonitor()">
+          <option value="">— Choose a centre —</option>
+        </select>
+      </div>
+
+      <div id="monitorContent" class="hidden">
+        <div class="monitor-kpis" id="monitorKpis"></div>
+        <div class="monitor-body">
+          <div class="monitor-chart-box">
+            <h3>Queue Length (Last 20 Updates)</h3>
+            <canvas id="monitorChart" height="200"></canvas>
+          </div>
+          <div class="prediction-panel" id="predictionPanel"></div>
+        </div>
+        <div class="demo-note">🔴 DEMO DATA — Simulated queue changes every 30 seconds. All data is fictional.</div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── COMPARE ──────────────────── -->
+    <section id="page-compare" class="page">
+      <div class="page-header">
+        <h1>Compare Service Centres</h1>
+        <div class="demo-pill">🔴 DEMO DATA</div>
+      </div>
+      <p class="page-subtitle">Select service centres to compare queue times side-by-side. Sort by waiting time to find the fastest option.</p>
+      <div class="compare-controls">
+        <div id="compareCheckboxes" class="compare-checkboxes"></div>
+        <select id="compareSortBy" onchange="renderCompare()">
+          <option value="wait">Sort by Wait Time</option>
+          <option value="queue">Sort by Queue Length</option>
+          <option value="counters">Sort by Available Counters</option>
+        </select>
+      </div>
+      <div class="compare-table-wrap">
+        <table class="compare-table" id="compareTable">
+          <thead>
+            <tr>
+              <th>Centre</th>
+              <th>Type</th>
+              <th>Waiting</th>
+              <th>Counters</th>
+              <th>Est. Wait</th>
+              <th>Status</th>
+              <th>Hours</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ──────────────────── BEST TIME ──────────────────── -->
+    <section id="page-best-time" class="page">
+      <div class="page-header">
+        <h1>Best Time to Visit</h1>
+        <div class="demo-pill">🔴 DEMO DATA</div>
+      </div>
+      <p class="page-subtitle">Based on historical queue data, discover the quietest times to visit any service centre.</p>
+
+      <div class="best-time-selector">
+        <label>Select Service Centre:</label>
+        <select id="btCentreSelect" onchange="loadBestTime()">
+          <option value="">— Choose a centre —</option>
+        </select>
+      </div>
+
+      <div id="btContent" class="hidden">
+        <div class="bt-recommendation" id="btRec"></div>
+        <div class="bt-chart-wrap">
+          <canvas id="btChart" height="250"></canvas>
+        </div>
+        <div class="bt-hours-grid" id="btHoursGrid"></div>
+        <div class="disclaimer-box small">⚠️ Recommendations are estimates based on historical patterns and may not reflect unexpected demand.</div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ANALYTICS ──────────────────── -->
+    <section id="page-analytics" class="page">
+      <div class="page-header">
+        <h1>Historical Analytics</h1>
+        <div class="demo-pill">🔴 DEMO DATA</div>
+      </div>
+      <div class="analytics-controls">
+        <select id="analyticsCentreSelect" onchange="loadAnalytics()">
+          <option value="">— Choose a centre —</option>
+        </select>
+        <select id="analyticsDays" onchange="loadAnalytics()">
+          <option value="7">Last 7 days</option>
+          <option value="14" selected>Last 14 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
+      <div id="analyticsContent" class="hidden">
+        <div class="charts-2col">
+          <div class="chart-card"><h3>Queue Length Over Time</h3><canvas id="chartQueueLen" height="220"></canvas></div>
+          <div class="chart-card"><h3>Estimated Wait Time Over Time</h3><canvas id="chartWaitTime" height="220"></canvas></div>
+          <div class="chart-card"><h3>Avg Wait by Hour of Day</h3><canvas id="chartHourly" height="220"></canvas></div>
+          <div class="chart-card"><h3>Arrival Rate vs Service Rate</h3><canvas id="chartRates" height="220"></canvas></div>
+        </div>
+      </div>
+      <div id="analyticsEmpty" class="empty-state">Select a service centre to view analytics.</div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         ██████████████  ADMIN PAGES  ████████████████████████████████
+    ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ──────────────────── ADMIN LOGIN GATE ──────────────────── -->
+    <section id="page-admin-login" class="page admin-page">
+      <div class="admin-login-screen">
+        <div class="login-card glass-card">
+          <div class="login-visual">
+            <div class="login-icon-wrap">
+              <svg width="48" height="48" viewBox="0 0 28 28" fill="none">
+                <rect width="28" height="28" rx="8" fill="#7c3aed"/>
+                <path d="M14 6l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" fill="white" opacity=".9"/>
+              </svg>
+            </div>
+            <h1 class="login-title">Staff Portal</h1>
+            <p class="login-subtitle">Administrator access to QueueAI management centre</p>
+          </div>
+          <div class="login-form">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="adminUser" value="admin" placeholder="Enter username" autocomplete="username"/>
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="adminPass" value="admin123" placeholder="Enter password" autocomplete="current-password"
+                     onkeydown="if(event.key==='Enter') doLogin()"/>
+            </div>
+            <p class="hint" style="margin-bottom:.5rem">Demo credentials: <code>admin</code> / <code>admin123</code></p>
+            <button class="btn btn-admin w-full" id="loginBtn" onclick="doLogin()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              Sign In to Admin
+            </button>
+            <div id="loginError" class="error-msg hidden"></div>
+            <button class="back-to-client-btn" onclick="switchToClient()">← Back to Public View</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: OVERVIEW ──────────────────── -->
+    <section id="page-admin-overview" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Admin Overview</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">All service centres at a glance</p>
+        </div>
+        <div class="header-actions">
+          <span id="adminWelcomeBadge" class="admin-badge"></span>
+          <button class="btn btn-sm btn-outline" onclick="loadAdminData()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="admin-kpi-grid" id="adminKpiGrid"></div>
+      <div class="admin-centres-list" id="adminCentresList"></div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: UPLOAD DATA ──────────────────── -->
+    <section id="page-admin-upload" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Upload Queue Data</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Push new data visible to all clients in real-time</p>
+        </div>
+      </div>
+
+      <!-- Upload methods tabs -->
+      <div class="upload-methods">
+        <button class="umethod-tab active" onclick="switchUploadTab('manual')" id="utab-manual">✏️ Manual Entry</button>
+        <button class="umethod-tab" onclick="switchUploadTab('csv')" id="utab-csv">📂 CSV Upload</button>
+        <button class="umethod-tab" onclick="switchUploadTab('bulk')" id="utab-bulk">⚡ Bulk Update</button>
+      </div>
+
+      <!-- Manual Entry -->
+      <div class="upload-tab-content active" id="ucontent-manual">
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-card-icon">✏️</div>
+            <div>
+              <h3>Manual Queue Entry</h3>
+              <p>Update live queue data for any service centre. This data is immediately visible to all clients.</p>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Service Centre</label>
+              <select id="updCentre"></select>
+            </div>
+            <div class="form-group">
+              <label>People Waiting</label>
+              <input type="number" id="updQueue" min="0" value="10" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Active Counters</label>
+              <input type="number" id="updCounters" min="0" value="3" />
+            </div>
+            <div class="form-group">
+              <label>People Being Served</label>
+              <input type="number" id="updServed" min="0" value="3" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Avg Service Time (min)</label>
+              <input type="number" id="updServiceTime" step="0.5" min="0.5" value="5" />
+            </div>
+            <div class="form-group">
+              <label>Arrival Rate (people/min)</label>
+              <input type="number" id="updArrival" step="0.1" min="0" value="2" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Note (optional)</label>
+            <input type="text" id="updNote" placeholder="e.g. Counter 2 reopened" />
+          </div>
+          <div class="upload-actions">
+            <button class="btn btn-admin" onclick="submitQueueUpdate()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Publish Update
+            </button>
+          </div>
+          <div id="updateResult" class="result-box hidden"></div>
+        </div>
+      </div>
+
+      <!-- CSV Upload -->
+      <div class="upload-tab-content" id="ucontent-csv">
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-card-icon">📂</div>
+            <div>
+              <h3>CSV Bulk Upload</h3>
+              <p>Upload a CSV file with multiple queue snapshots at once. All rows will be published to the live feed.</p>
+            </div>
+          </div>
+
+          <div class="csv-format-hint">
+            <strong>📋 Expected CSV columns:</strong>
+            <code>centre_name, queue_length, active_counters, people_being_served, avg_service_time, arrival_rate, note</code>
+          </div>
+
+          <div class="dropzone" id="csvDropzone"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="handleCsvDrop(event)">
+            <div class="dropzone-icon">📁</div>
+            <p class="dropzone-title">Drag &amp; drop your CSV file here</p>
+            <p class="dropzone-sub">or</p>
+            <label class="btn btn-outline" for="csvFileInput" style="cursor:pointer">Browse File</label>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFile(event)" />
+          </div>
+
+          <div id="csvPreview" class="csv-preview hidden"></div>
+          <div class="upload-actions">
+            <button class="btn btn-admin" id="csvSubmitBtn" onclick="submitCsvUpload()" style="display:none">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              Upload &amp; Publish
+            </button>
+          </div>
+          <div id="csvResult" class="result-box hidden"></div>
+        </div>
+      </div>
+
+      <!-- Bulk Update -->
+      <div class="upload-tab-content" id="ucontent-bulk">
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-card-icon">⚡</div>
+            <div>
+              <h3>Quick Bulk Update</h3>
+              <p>Update multiple centres at once using the sliders below. Perfect for end-of-shift data entry.</p>
+            </div>
+          </div>
+          <div id="bulkUpdateList" class="bulk-update-list">
+            <div class="loading-placeholder">Loading centres...</div>
+          </div>
+          <div class="upload-actions">
+            <button class="btn btn-admin" onclick="submitBulkUpdate()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Publish All Updates
+            </button>
+          </div>
+          <div id="bulkResult" class="result-box hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: MANAGE CENTRES ──────────────────── -->
+    <section id="page-admin-centres" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Manage Centres</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Add, edit or deactivate service centres</p>
+        </div>
+      </div>
+      <div class="upload-card" style="max-width:700px">
+        <div class="upload-card-header">
+          <div class="upload-card-icon">🏢</div>
+          <div><h3>Add New Service Centre</h3><p>New centres are immediately listed in the client dashboard.</p></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text" id="newCentreName" placeholder="e.g. North Bank Branch" /></div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="newCentreType">
+              <option>Hospital</option><option>Bank</option><option>Education</option>
+              <option>Government</option><option>Transport</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Location</label><input type="text" id="newCentreLocation" placeholder="Address or area" /></div>
+          <div class="form-group"><label>Operating Hours</label><input type="text" id="newCentreHours" value="09:00-17:00" /></div>
+        </div>
+        <div class="upload-actions">
+          <button class="btn btn-admin" onclick="addCentre()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Centre
+          </button>
+        </div>
+        <div id="addCentreResult" class="result-box hidden"></div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: UPDATE QUEUE ──────────────────── -->
+    <section id="page-admin-queue-update" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Update Queue Data</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Record the current queue state — visible to clients instantly</p>
+        </div>
+      </div>
+      <div class="upload-card" style="max-width:700px">
+        <div class="upload-card-header">
+          <div class="upload-card-icon">📡</div>
+          <div><h3>Live Queue Update</h3><p>Only authorised administrator updates create non-demo records.</p></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Service Centre</label><select id="updCentre2"></select></div>
+          <div class="form-group"><label>People Waiting</label><input type="number" id="updQueue2" min="0" value="10" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Active Counters</label><input type="number" id="updCounters2" min="0" value="3" /></div>
+          <div class="form-group"><label>People Being Served</label><input type="number" id="updServed2" min="0" value="3" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Avg Service Time (min)</label><input type="number" id="updServiceTime2" step="0.5" min="0.5" value="5" /></div>
+          <div class="form-group"><label>Arrival Rate (people/min)</label><input type="number" id="updArrival2" step="0.1" min="0" value="2" /></div>
+        </div>
+        <div class="form-group"><label>Note (optional)</label><input type="text" id="updNote2" placeholder="e.g. Counter 2 reopened" /></div>
+        <div class="upload-actions">
+          <button class="btn btn-admin" onclick="submitQueueUpdate2()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Publish Update
+          </button>
+        </div>
+        <div id="updateResult2" class="result-box hidden"></div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: THRESHOLDS ──────────────────── -->
+    <section id="page-admin-thresholds" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Congestion Thresholds</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Define wait-time thresholds that control status labels shown to clients</p>
+        </div>
+      </div>
+      <div class="upload-card" style="max-width:700px">
+        <div class="upload-card-header">
+          <div class="upload-card-icon">⚙️</div>
+          <div><h3>Set Status Thresholds</h3><p>These thresholds determine which "Quiet / Normal / Busy / Very Busy" labels are shown to your users.</p></div>
+        </div>
+        <div class="form-group"><label>Service Centre</label><select id="threshCentre"></select></div>
+        <div class="form-row">
+          <div class="form-group"><label>Quiet (≤ x min)</label><input type="number" id="threshQuiet" value="5" step="1" min="1" /></div>
+          <div class="form-group"><label>Normal (≤ x min)</label><input type="number" id="threshNormal" value="15" step="1" min="1" /></div>
+          <div class="form-group"><label>Busy (≤ x min)</label><input type="number" id="threshBusy" value="30" step="1" min="1" /></div>
+        </div>
+        <div class="upload-actions">
+          <button class="btn btn-admin" onclick="saveThresholds()">Save Thresholds</button>
+        </div>
+        <div id="threshResult" class="result-box hidden"></div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: ML MODELS ──────────────────── -->
+    <section id="page-admin-ml" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>ML Model Training</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Train Gradient Boosting models to improve prediction accuracy</p>
+        </div>
+      </div>
+      <div class="upload-card" style="max-width:700px">
+        <div class="upload-card-header">
+          <div class="upload-card-icon">🤖</div>
+          <div><h3>Train ML Model</h3><p>Requires ≥ 30 snapshots for a centre (chronological 80/20 train/test split).</p></div>
+        </div>
+        <div class="form-group"><label>Service Centre</label><select id="mlCentre"></select></div>
+        <div class="upload-actions">
+          <button class="btn btn-admin" onclick="trainModel()">🚀 Train Model</button>
+        </div>
+        <div id="mlResult" class="result-box hidden"></div>
+        <div id="mlStatusList" style="margin-top:1.5rem"></div>
+      </div>
+    </section>
+
+    <!-- ──────────────────── ADMIN: EXPORT / RESET ──────────────────── -->
+    <section id="page-admin-export" class="page admin-page hidden-admin">
+      <div class="page-header admin-page-header">
+        <div>
+          <h1>Export &amp; Reset</h1>
+          <p style="color:var(--text-secondary);font-size:.875rem;margin-top:.25rem">Download data or reset the demo environment</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px">
+        <div class="upload-card">
+          <div class="upload-card-header">
+            <div class="upload-card-icon">⬇️</div>
+            <div><h3>Export CSV</h3><p>Download all recorded snapshots for a centre.</p></div>
+          </div>
+          <div class="form-group"><label>Service Centre</label><select id="exportCentre"></select></div>
+          <div class="upload-actions">
+            <button class="btn btn-admin" onclick="exportCSV()">⬇ Download CSV</button>
+          </div>
+        </div>
+        <div class="upload-card danger-card">
+          <div class="upload-card-header">
+            <div class="upload-card-icon">⚠️</div>
+            <div><h3>Reset Demo Data</h3><p>Clear all simulated snapshots and regenerate fresh demo data. <strong>This cannot be undone.</strong></p></div>
+          </div>
+          <div class="upload-actions">
+            <button class="btn btn-danger" onclick="resetDemo()">Reset Demo Data</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- Toast notifications -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
