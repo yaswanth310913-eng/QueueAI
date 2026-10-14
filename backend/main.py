@@ -22,11 +22,13 @@ if str(BACKEND_DIR) not in sys.path:
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+# pyrefly: ignore [missing-import]
 from database import get_db, init_db, _seed_demo_data
+# pyrefly: ignore [missing-import]
 from predictor import (
     best_time_analysis,
     mathematical_prediction,
@@ -126,6 +128,22 @@ async def serve_frontend():
     if index.exists():
         return HTMLResponse(index.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>QueueAI: Place frontend/index.html in the frontend/ directory.</h1>")
+
+
+@app.get("/style.css")
+async def serve_css():
+    css = STATIC / "style.css"
+    if css.exists():
+        return FileResponse(css, media_type="text/css")
+    raise HTTPException(status_code=404, detail="style.css not found")
+
+
+@app.get("/app.js")
+async def serve_js():
+    js = STATIC / "app.js"
+    if js.exists():
+        return FileResponse(js, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="app.js not found")
 
 
 # ────────────────────────────────────────────────────────────────────────────

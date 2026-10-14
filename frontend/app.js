@@ -2,7 +2,7 @@
    QueueAI – Main Application Logic (Dual-Mode: Client + Admin)
    ============================================================ */
 
-const API = '';  // same-origin
+const API = (window.location.protocol === 'file:' || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.port)) ? 'http://127.0.0.1:8000' : '';
 let _centres   = [];
 let _chartRefs = {};
 let _pollTimer = null;
@@ -12,6 +12,16 @@ let _monitorInterval = null;
 let _isAdminMode = false;
 let _adminUser = null;
 let _csvRows = [];   // parsed CSV rows pending upload
+
+if (window.location.protocol === 'file:') {
+  window.addEventListener('DOMContentLoaded', () => {
+    const banner = document.createElement('div');
+    banner.id = 'fileNoticeBanner';
+    banner.style.cssText = 'background:#fef3c7;color:#92400e;padding:10px 16px;text-align:center;font-size:13px;font-weight:600;border-bottom:1px solid #fde68a;position:sticky;top:0;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.05);';
+    banner.innerHTML = '⚠️ You opened index.html directly from your folder. For best experience, run <code>start.bat</code> and open <a href="http://localhost:8000" target="_blank" style="color:#b45309;text-decoration:underline;margin-left:4px;">http://localhost:8000</a>.';
+    document.body.prepend(banner);
+  });
+}
 
 // ── Utilities ────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
