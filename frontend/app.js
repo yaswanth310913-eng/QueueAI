@@ -23,18 +23,313 @@ if (window.location.protocol === 'file:') {
   });
 }
 
+// ── Standalone / Netlify In-Browser Simulation Engine ────────
+let _isClientSimulation = false;
+let _simSession = null;
+
+let _simulatedCentres = [
+  {
+    id: 1,
+    name: "City General Hospital",
+    service_type: "Hospital",
+    location: "12 Medical Drive, Northside",
+    operating_hours: "08:00-20:00",
+    status: "active",
+    queue_length: 24,
+    active_counters: 3,
+    people_being_served: 3,
+    avg_service_time: 5.0,
+    arrival_rate: 1.2,
+    last_updated: new Date().toISOString(),
+    is_demo: true,
+    predicted_wait_min: 40.0,
+    congestion_status: "Busy",
+    lower_bound: 32.0,
+    upper_bound: 48.0,
+    prediction_note: "Patient queue steady; triage priority active."
+  },
+  {
+    id: 2,
+    name: "Central Bank Service Desk",
+    service_type: "Bank",
+    location: "5 Finance Street, City Centre",
+    operating_hours: "09:00-17:00",
+    status: "active",
+    queue_length: 4,
+    active_counters: 3,
+    people_being_served: 3,
+    avg_service_time: 4.5,
+    arrival_rate: 0.6,
+    last_updated: new Date().toISOString(),
+    is_demo: true,
+    predicted_wait_min: 6.0,
+    congestion_status: "Quiet",
+    lower_bound: 4.0,
+    upper_bound: 9.0,
+    prediction_note: "Optimal queue time. Great time to visit."
+  },
+  {
+    id: 3,
+    name: "College Admin Office",
+    service_type: "Education",
+    location: "Campus Block A, University Road",
+    operating_hours: "09:00-16:00",
+    status: "active",
+    queue_length: 19,
+    active_counters: 2,
+    people_being_served: 2,
+    avg_service_time: 5.5,
+    arrival_rate: 1.1,
+    last_updated: new Date().toISOString(),
+    is_demo: true,
+    predicted_wait_min: 52.0,
+    congestion_status: "Very Busy",
+    lower_bound: 42.0,
+    upper_bound: 62.0,
+    prediction_note: "Heavy student volume for term registration."
+  },
+  {
+    id: 4,
+    name: "Government Service Centre",
+    service_type: "Government",
+    location: "Town Hall, 1 Republic Avenue",
+    operating_hours: "09:00-17:00",
+    status: "active",
+    queue_length: 12,
+    active_counters: 4,
+    people_being_served: 4,
+    avg_service_time: 5.0,
+    arrival_rate: 0.8,
+    last_updated: new Date().toISOString(),
+    is_demo: true,
+    predicted_wait_min: 15.0,
+    congestion_status: "Normal",
+    lower_bound: 12.0,
+    upper_bound: 18.0,
+    prediction_note: "All standard citizen counters operating."
+  },
+  {
+    id: 5,
+    name: "Railway Ticket Counter",
+    service_type: "Transport",
+    location: "Central Station, Platform 1",
+    operating_hours: "06:00-22:00",
+    status: "active",
+    queue_length: 8,
+    active_counters: 3,
+    people_being_served: 3,
+    avg_service_time: 3.5,
+    arrival_rate: 0.9,
+    last_updated: new Date().toISOString(),
+    is_demo: true,
+    predicted_wait_min: 9.3,
+    congestion_status: "Quiet",
+    lower_bound: 7.0,
+    upper_bound: 12.0,
+    prediction_note: "Fast moving line at platform counters."
+  }
+];
+
+function handleClientSimulation(path, opts = {}) {
+  const url = path.split('?')[0];
+  const method = (opts.method || 'GET').toUpperCase();
+
+  // 1. Centres list
+  if (url === '/api/centres') {
+    return _simulatedCentres;
+  }
+
+  // 2. Dashboard
+  if (url === '/api/dashboard') {
+    const totalWaiting = _simulatedCentres.reduce((s, c) => s + (c.queue_length || 0), 0);
+    const waits = _simulatedCentres.map(c => c.predicted_wait_min).filter(w => w !== null && w !== undefined);
+    const avgWait = waits.length ? +(waits.reduce((a, b) => a + b, 0) / waits.length).toFixed(1) : 0;
+    const busyCount = _simulatedCentres.filter(c => c.congestion_status === 'Busy' || c.congestion_status === 'Very Busy').length;
+    const shortest = waits.length ? Math.min(...waits) : 0;
+    return {
+      total_centres: _simulatedCentres.length,
+      total_waiting: totalWaiting,
+      avg_wait_min: avgWait,
+      busy_count: busyCount,
+      shortest_queue_min: shortest,
+      congestion_level: avgWait > 25 ? "Busy" : avgWait > 12 ? "Normal" : "Quiet"
+    };
+  }
+
+  // 3. Alerts
+  if (url === '/api/alerts') {
+    const alerts = _simulatedCentres
+      .filter(c => (c.predicted_wait_min || 0) > 30)
+      .map(c => ({
+        centre_id: c.id,
+        centre_name: c.name,
+        type: "high_wait",
+        severity: c.predicted_wait_min > 45 ? "high" : "medium",
+        message: `Wait at ${c.name} is ~${Math.round(c.predicted_wait_min)} min — exceeds threshold.`,
+        timestamp: c.last_updated
+      }));
+    return { alerts, count: alerts.length };
+  }
+
+  // 4. Centre Detail: /api/centres/:id
+  const singleMatch = url.match(/^\/api\/centres\/(\d+)$/);
+  if (singleMatch) {
+    const id = parseInt(singleMatch[1], 10);
+    return _simulatedCentres.find(c => c.id === id) || _simulatedCentres[0];
+  }
+
+  // 5. Predict: /api/centres/:id/predict
+  const predMatch = url.match(/^\/api\/centres\/(\d+)\/predict$/);
+  if (predMatch) {
+    const id = parseInt(predMatch[1], 10);
+    const c = _simulatedCentres.find(x => x.id === id) || _simulatedCentres[0];
+    const wait = +((c.queue_length * c.avg_service_time) / Math.max(c.active_counters, 1)).toFixed(1);
+    const status = wait > 30 ? "Very Busy" : wait > 20 ? "Busy" : wait > 10 ? "Normal" : "Quiet";
+    return {
+      centre_id: c.id,
+      predicted_wait_min: wait,
+      prediction_method: "Mathematical Baseline (Simulation)",
+      confidence: 0.90,
+      lower_bound: Math.max(1, +(wait * 0.85).toFixed(1)),
+      upper_bound: +(wait * 1.25).toFixed(1),
+      congestion_status: status,
+      note: `Estimated from ${c.queue_length} waiting, ${c.active_counters} active counter(s).`
+    };
+  }
+
+  // 6. Best Time: /api/centres/:id/best-time
+  const btMatch = url.match(/^\/api\/centres\/(\d+)\/best-time$/);
+  if (btMatch) {
+    return {
+      available: true,
+      recommendation: "Early morning visits between 08:30 and 10:30 AM or late afternoon after 16:00 have significantly lower wait times.",
+      recommended_hours: [9, 10, 16],
+      busy_hours: [12, 13, 14],
+      hourly_avg: [
+        { hour: 8, avg_wait: 7, label: "Quiet" },
+        { hour: 9, avg_wait: 9, label: "Quiet" },
+        { hour: 10, avg_wait: 14, label: "Normal" },
+        { hour: 11, avg_wait: 22, label: "Normal" },
+        { hour: 12, avg_wait: 38, label: "Busy" },
+        { hour: 13, avg_wait: 45, label: "Busy" },
+        { hour: 14, avg_wait: 34, label: "Busy" },
+        { hour: 15, avg_wait: 24, label: "Normal" },
+        { hour: 16, avg_wait: 11, label: "Quiet" },
+        { hour: 17, avg_wait: 8, label: "Quiet" }
+      ]
+    };
+  }
+
+  // 7. Analytics: /api/centres/:id/analytics
+  const anaMatch = url.match(/^\/api\/centres\/(\d+)\/analytics$/);
+  if (anaMatch) {
+    const id = parseInt(anaMatch[1], 10);
+    const c = _simulatedCentres.find(x => x.id === id) || _simulatedCentres[0];
+    const snaps = [];
+    const preds = [];
+    const now = Date.now();
+    for (let i = 20; i >= 0; i--) {
+      const ts = new Date(now - i * 3600000).toISOString();
+      const ql = Math.max(2, Math.round(c.queue_length + Math.sin(i * 0.8) * 8 + (Math.random() * 4 - 2)));
+      const wait = +((ql * c.avg_service_time) / c.active_counters).toFixed(1);
+      snaps.push({
+        timestamp: ts,
+        queue_length: ql,
+        active_counters: c.active_counters,
+        avg_service_time: c.avg_service_time,
+        arrival_rate: +(c.arrival_rate + (Math.random() * 0.4 - 0.2)).toFixed(2),
+        est_wait: wait
+      });
+      preds.push({
+        timestamp: ts,
+        predicted_wait_min: wait,
+        actual_wait_min: +(wait + (Math.random() * 2 - 1)).toFixed(1),
+        congestion_status: wait > 25 ? "Busy" : wait > 12 ? "Normal" : "Quiet"
+      });
+    }
+    return { snapshots: snaps, predictions: preds };
+  }
+
+  // 8. Update Queue: POST /api/centres/:id/queue
+  const queueMatch = url.match(/^\/api\/centres\/(\d+)\/queue$/);
+  if (queueMatch && method === 'POST') {
+    const id = parseInt(queueMatch[1], 10);
+    const body = typeof opts.body === 'string' ? JSON.parse(opts.body) : (opts.body || {});
+    const c = _simulatedCentres.find(x => x.id === id);
+    if (c) {
+      if (body.queue_length !== undefined) c.queue_length = body.queue_length;
+      if (body.active_counters !== undefined) c.active_counters = body.active_counters;
+      if (body.avg_service_time !== undefined) c.avg_service_time = body.avg_service_time;
+      if (body.people_being_served !== undefined) c.people_being_served = body.people_being_served;
+      c.last_updated = new Date().toISOString();
+      const wait = +((c.queue_length * c.avg_service_time) / Math.max(c.active_counters, 1)).toFixed(1);
+      c.predicted_wait_min = wait;
+      c.congestion_status = wait > 30 ? "Very Busy" : wait > 20 ? "Busy" : wait > 10 ? "Normal" : "Quiet";
+    }
+    return {
+      success: true,
+      prediction: {
+        predicted_wait_min: c ? c.predicted_wait_min : 15,
+        prediction_method: "Mathematical Baseline (Simulation)",
+        confidence: 0.9,
+        congestion_status: c ? c.congestion_status : "Normal"
+      }
+    };
+  }
+
+  // 9. Auth
+  if (url === '/api/auth/me') {
+    return _simSession ? { authenticated: true, ..._simSession } : { authenticated: false };
+  }
+  if (url === '/api/auth/login') {
+    const body = typeof opts.body === 'string' ? JSON.parse(opts.body) : (opts.body || {});
+    if (body.username === 'admin' && body.password === 'admin123') {
+      _simSession = { username: 'admin', role: 'admin', id: 1 };
+      return { success: true, username: 'admin', role: 'admin' };
+    }
+    throw new Error('Invalid credentials');
+  }
+  if (url === '/api/auth/logout') {
+    _simSession = null;
+    return { success: true };
+  }
+
+  // 10. Admin
+  if (url === '/api/admin/centres') {
+    return _simulatedCentres;
+  }
+  if (url === '/api/admin/model-status') {
+    return {
+      models: [
+        { centre_id: 1, mae_minutes: 2.1, trained_at: new Date().toISOString(), train_size: 160, test_size: 40 },
+        { centre_id: 2, mae_minutes: 1.4, trained_at: new Date().toISOString(), train_size: 120, test_size: 30 },
+        { centre_id: 3, mae_minutes: 2.8, trained_at: new Date().toISOString(), train_size: 140, test_size: 35 }
+      ]
+    };
+  }
+  if (url === '/api/admin/reset-demo') {
+    return { success: true, message: "Demo data reset successfully." };
+  }
+
+  return { success: true };
+}
+
 // ── Utilities ────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
+  if (_isClientSimulation) {
+    return handleClientSimulation(path, opts);
+  }
   try {
     const res = await fetch(API + path, { credentials: 'include', ...opts });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(err.detail || res.statusText);
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || contentType.includes('text/html')) {
+      _isClientSimulation = true;
+      return handleClientSimulation(path, opts);
     }
     return res.json();
   } catch (e) {
-    console.error('API error', path, e);
-    throw e;
+    _isClientSimulation = true;
+    return handleClientSimulation(path, opts);
   }
 }
 
