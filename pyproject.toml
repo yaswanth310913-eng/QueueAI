@@ -20,3 +20,6 @@ entrypoint = "main:app"
 
 [tool.fastapi]
 entrypoint = "main:app"
+
+[tool.vercel]
+entrypoint = "backend.main:app"
